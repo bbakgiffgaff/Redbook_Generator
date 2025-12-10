@@ -1,0 +1,5 @@
+{
+  "name": "RedBook Card Generator",
+  "description": "A tool to convert long text into stylish, paginated Red Book (XiaoHongShu) style image cards with automatic text splitting and batch download.",
+  "requestFramePermissions": []
+}
