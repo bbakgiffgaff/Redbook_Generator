@@ -1,7 +1,8 @@
-# Spec: Visual Pagination
+# pagination Specification
 
-## MODIFIED Requirements
-
+## Purpose
+TBD - created by archiving change implement-dynamic-pagination. Update Purpose after archive.
+## Requirements
 ### Requirement: Dynamic Pagination Logic
 The system SHALL handle text pagination based on real-time DOM measurements rather than static character limits.
 #### Scenario: Text exceeds available card height
@@ -58,3 +59,4 @@ The system SHALL follow a strict hierarchy when breaking text.
 - **Then** the system MUST try to break at Paragraphs first.
 - **Then** at Sentences (punctuation) if paragraphs are too long.
 - **Then** at Characters/Words only if a single sentence exceeds the page height.
+
