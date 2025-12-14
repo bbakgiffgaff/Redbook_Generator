@@ -1,0 +1,22 @@
+- [ ] Data Model & Config
+  - [ ] Define `Theme` interface and `THEMES` (as const) in `types.ts` (with WCAG AA colors)
+  - [ ] Implement `getThemeById` helper with fallback logic
+- [ ] State Management
+  - [ ] Add `theme` state to `App.tsx`
+  - [ ] Implement `useThemePersistence` hook (Priority: URL > localStorage > Default)
+- [ ] UI Implementation
+  - [ ] Create `ThemeSelector` component (visual swatches, A11y: `button` with `aria-label`, keyboard nav)
+  - [ ] Update `Editor.tsx` to include `ThemeSelector`
+- [ ] Rendering Updates
+  - [ ] Refactor `Card.tsx` to use dynamic theme props
+  - [ ] Ensure watermark and decorations respect theme colors
+- [ ] Verification
+  *   **Automated**:
+      - [ ] Add unit test for `getThemeById` (fallback logic, invalid ID handling)
+      - [ ] Add unit test for `paginateText` (regression test)
+  *   **Manual**: 
+      - [ ] A11y: Verify keyboard navigation in Theme Selector
+      - [ ] Persistence: Verify URL overrides localStorage, and localStorage persists on reload
+      - [ ] Robustness: Verify app loads with invalid `?theme=xyz` (fallback to Red)
+      - [ ] Export: Verify exported image is exactly 600x800 (clean `.card-node` capture)
+      - [ ] Export: Verify retry works after a simulated failure
