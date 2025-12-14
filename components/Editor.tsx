@@ -2,6 +2,7 @@ import React from 'react';
 import { Theme } from '../types';
 import ThemeSelector from './ThemeSelector';
 import { LayoutTemplate, AlignLeft, Palette } from 'lucide-react';
+import { OVERLAY_DEFAULTS } from '../constants';
 
 interface EditorProps {
   title: string;
@@ -12,6 +13,12 @@ interface EditorProps {
   isExporting: boolean;
   currentTheme: Theme;
   onThemeChange: (theme: Theme) => void;
+  backgroundImage: string | null;
+  overlayOpacity: number;
+  onOverlayChange: (val: number) => void;
+  onBackgroundUpload: (file: File) => void;
+  onResetBackground: () => void;
+  backgroundError: string | null;
 }
 
 const Editor: React.FC<EditorProps> = ({
@@ -22,8 +29,27 @@ const Editor: React.FC<EditorProps> = ({
   onDownload,
   isExporting,
   currentTheme,
-  onThemeChange
+  onThemeChange,
+  backgroundImage,
+  overlayOpacity,
+  onOverlayChange,
+  onBackgroundUpload,
+  onResetBackground,
+  backgroundError
 }) => {
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      onBackgroundUpload(file);
+    }
+    // Reset input to allow re-upload same file
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   return (
     <div className="w-full md:w-[400px] bg-white border-r border-gray-200 h-screen overflow-y-auto flex flex-col shadow-xl z-20">
       <div className="p-6 border-b border-gray-100">
@@ -78,6 +104,65 @@ const Editor: React.FC<EditorProps> = ({
           <p className="text-xs text-gray-400">
             * Content automatically paginated at ~120 characters per card.
           </p>
+        </div>
+
+        {/* Background Controls */}
+        <div className="space-y-3">
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+            <Palette size={16} />
+            Background
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="px-4 py-2 text-sm font-semibold text-white bg-gray-800 rounded-lg shadow hover:bg-gray-900 transition-colors"
+            >
+              Upload Image
+            </button>
+            <button
+              type="button"
+              onClick={onResetBackground}
+              className="px-3 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Reset
+            </button>
+          </div>
+          {backgroundError && (
+            <p className="text-xs text-red-600">{backgroundError}</p>
+          )}
+          {backgroundImage && (
+            <div className="flex items-center gap-3">
+              <div className="w-16 h-16 rounded overflow-hidden border border-gray-200 bg-gray-100">
+                <img src={backgroundImage} alt="Background preview" className="w-full h-full object-cover" />
+              </div>
+              <span className="text-xs text-gray-500">Preview</span>
+            </div>
+          )}
+
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-xs text-gray-600">
+              <span>Overlay</span>
+              <span>{Math.round(overlayOpacity * 100)}%</span>
+            </div>
+            <input
+              type="range"
+              min={OVERLAY_DEFAULTS.min}
+              max={OVERLAY_DEFAULTS.max}
+              step={OVERLAY_DEFAULTS.step}
+              value={overlayOpacity}
+              onChange={(e) => onOverlayChange(parseFloat(e.target.value))}
+              className="w-full"
+            />
+            <p className="text-[11px] text-gray-400">调整遮罩深浅，默认约 40%。</p>
+          </div>
         </div>
       </div>
 

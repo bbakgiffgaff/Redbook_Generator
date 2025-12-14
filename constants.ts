@@ -42,3 +42,16 @@ export const MARKDOWN_STYLES = {
         marginBottom: '1em',
     }
 };
+
+export const BACKGROUND_LIMITS = {
+    maxFileSize: 5 * 1024 * 1024, // 5MB
+    maxDimension: 1200, // px, longest side
+    jpegQuality: 0.7,
+};
+
+export const OVERLAY_DEFAULTS = {
+    min: 0,
+    max: 0.8,
+    defaultOpacity: 0.4,
+    step: 0.05,
+};

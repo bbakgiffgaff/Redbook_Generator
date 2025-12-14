@@ -1,12 +1,18 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Editor from './components/Editor';
 import Card from './components/Card';
 import { CardConfig, CardType, Theme, DEFAULT_THEME_ID } from './types';
 import { paginateText } from './utils/textUtils';
 import { generateAndDownloadZip } from './utils/downloadUtils';
 import { getThemeById, generateCustomTheme } from './utils/themeUtils';
-import { Image } from 'lucide-react';
-import { DEFAULT_SAFE_HEIGHT, CARD_DIMENSIONS, TYPOGRAPHY } from './constants';
+import { Image as ImageIcon } from 'lucide-react';
+import { BACKGROUND_LIMITS, DEFAULT_SAFE_HEIGHT, CARD_DIMENSIONS, TYPOGRAPHY, OVERLAY_DEFAULTS } from './constants';
+import { compressImageFile, isValidImageFile } from './utils/imageUtils';
+
+const clampOverlay = (value: number) => {
+  const safe = Number.isFinite(value) ? value : OVERLAY_DEFAULTS.defaultOpacity;
+  return Math.min(OVERLAY_DEFAULTS.max, Math.max(OVERLAY_DEFAULTS.min, safe));
+};
 
 // Hook for debouncing value
 function useDebounce<T>(value: T, delay: number): T {
@@ -70,6 +76,29 @@ const App: React.FC = () => {
   const [title, setTitle] = useState(DEFAULT_TITLE);
   const [text, setText] = useState(DEFAULT_TEXT);
   const [isExporting, setIsExporting] = useState(false);
+  const [backgroundImage, setBackgroundImage] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('rb-generator-bg') || null;
+    } catch (e) {
+      return null;
+    }
+  });
+  const [overlayOpacity, setOverlayOpacity] = useState<number>(() => {
+    try {
+      const stored = localStorage.getItem('rb-generator-bg-overlay');
+      if (stored) {
+        const parsed = parseFloat(stored);
+        return clampOverlay(parsed);
+      }
+    } catch (e) {
+      // ignore
+    }
+    return OVERLAY_DEFAULTS.defaultOpacity;
+  });
+  const [backgroundError, setBackgroundError] = useState<string | null>(null);
+  const [backgroundLoaded, setBackgroundLoaded] = useState<boolean>(true);
+  const [backgroundFailed, setBackgroundFailed] = useState<boolean>(false);
+  const backgroundLoadPromiseRef = useRef<Promise<void> | null>(null);
 
   // Dynamic Measurement State
   const [safeHeight, setSafeHeight] = useState<number>(DEFAULT_SAFE_HEIGHT);
@@ -125,6 +154,54 @@ const App: React.FC = () => {
     return () => window.removeEventListener('resize', measureLayout);
   }, []);
 
+  // Background load tracking
+  useEffect(() => {
+    if (!backgroundImage) {
+      setBackgroundLoaded(true);
+      setBackgroundFailed(false);
+      backgroundLoadPromiseRef.current = null;
+      return;
+    }
+
+    setBackgroundLoaded(false);
+    setBackgroundFailed(false);
+
+    backgroundLoadPromiseRef.current = new Promise((resolve) => {
+      const img = new window.Image();
+      img.onload = () => {
+        setBackgroundLoaded(true);
+        resolve();
+      };
+      img.onerror = () => {
+        setBackgroundFailed(true);
+        setBackgroundImage(null);
+        resolve();
+      };
+      img.src = backgroundImage;
+    });
+  }, [backgroundImage]);
+
+  // Persist background best-effort
+  useEffect(() => {
+    try {
+      if (backgroundImage) {
+        localStorage.setItem('rb-generator-bg', backgroundImage);
+      } else {
+        localStorage.removeItem('rb-generator-bg');
+      }
+    } catch (e) {
+      // ignore quota errors
+    }
+  }, [backgroundImage]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('rb-generator-bg-overlay', overlayOpacity.toString());
+    } catch (e) {
+      // ignore
+    }
+  }, [overlayOpacity]);
+
   // Memoize the card generation logic to prevent flicker
   const cards: CardConfig[] = useMemo(() => {
     const generatedCards: CardConfig[] = [];
@@ -154,19 +231,56 @@ const App: React.FC = () => {
     return generatedCards;
   }, [title, debouncedText, safeHeight]);
 
+  const handleBackgroundUpload = async (file: File) => {
+    const validationError = isValidImageFile(file, BACKGROUND_LIMITS.maxFileSize);
+    if (validationError) {
+      setBackgroundError(validationError);
+      return;
+    }
+
+    try {
+      setBackgroundError(null);
+      const compressed = await compressImageFile(file, {
+        maxDimension: BACKGROUND_LIMITS.maxDimension,
+        quality: BACKGROUND_LIMITS.jpegQuality,
+      });
+      setBackgroundImage(compressed);
+    } catch (error) {
+      console.error('Image compression failed', error);
+      setBackgroundError('图片处理失败，请重试');
+    }
+  };
+
+  const handleOverlayChange = (value: number) => {
+    setOverlayOpacity(clampOverlay(value));
+  };
+
+  const resetBackground = () => {
+    setBackgroundImage(null);
+    setBackgroundError(null);
+    setBackgroundLoaded(true);
+    setBackgroundFailed(false);
+  };
+
+  const waitForBackground = async () => {
+    if (!backgroundImage) return;
+    if (backgroundLoaded && !backgroundFailed) return;
+    if (backgroundLoadPromiseRef.current) {
+      await backgroundLoadPromiseRef.current;
+    }
+  };
+
   const handleDownload = async () => {
     setIsExporting(true);
-    // Slight delay to allow UI to update state
-    setTimeout(async () => {
-      try {
-        await generateAndDownloadZip('cards-container', `RedBook_Export_${Date.now()}`);
-      } catch (error) {
-        console.error("Export failed:", error);
-        alert("Failed to export images. Please try again.");
-      } finally {
-        setIsExporting(false);
-      }
-    }, 100);
+    try {
+      await waitForBackground();
+      await generateAndDownloadZip('cards-container', `RedBook_Export_${Date.now()}`);
+    } catch (error) {
+      console.error("Export failed:", error);
+      alert("Failed to export images. Please try again.");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -217,6 +331,12 @@ const App: React.FC = () => {
         isExporting={isExporting}
         currentTheme={currentTheme}
         onThemeChange={setCurrentTheme}
+        backgroundImage={backgroundImage}
+        overlayOpacity={overlayOpacity}
+        onOverlayChange={handleOverlayChange}
+        onBackgroundUpload={handleBackgroundUpload}
+        onResetBackground={resetBackground}
+        backgroundError={backgroundError}
       />
 
       {/* Right Area: Preview */}
@@ -225,7 +345,7 @@ const App: React.FC = () => {
 
           <div className="max-w-[1400px] mx-auto">
             <div className="flex items-center gap-3 mb-6 text-gray-500">
-              <Image className="w-5 h-5" />
+              <ImageIcon className="w-5 h-5" />
               <span className="font-medium tracking-wide text-sm uppercase">Live Preview ({cards.length} cards)</span>
             </div>
 
@@ -240,7 +360,12 @@ const App: React.FC = () => {
             >
               {cards.map((config) => (
                 <div key={config.id} className="transform transition-transform hover:scale-[1.02] duration-300">
-                  <Card config={config} theme={currentTheme} />
+                  <Card
+                    config={config}
+                    theme={currentTheme}
+                    backgroundImage={backgroundImage}
+                    overlayOpacity={backgroundImage ? overlayOpacity : 0}
+                  />
                 </div>
               ))}
             </div>

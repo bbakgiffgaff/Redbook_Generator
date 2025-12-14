@@ -6,29 +6,12 @@ import { renderMarkdown } from '../utils/markdownRenderer';
 interface CardProps {
   config: CardConfig;
   theme: Theme;
+  backgroundImage?: string | null;
+  overlayOpacity?: number;
 }
 
-const Card: React.FC<CardProps> = ({ config, theme }) => {
-  // Parse content if it's an object with fontSize property (Auto-Shrink result)
-  // But wait, paginateText returns { content, fontSize } objects now.
-  // And config.content is typed as 'string' in CardConfig currently? 
-  // We need to verify CardConfig type in constants/types.
-  // Assuming config.content can be the object.
-  // Actually, we should check types.ts first or handle the type mismatch.
-  // Based on textUtils signature: { content: string, fontSize: number }[]
-  // App.tsx passes this to Card config.
-  // We need to update Card component to handle this structure or cast it.
-
-  // Let's assume for now we receive the "content" string and "fontSize" might be passed via config if we updated types. 
-  // OR we can make CardConfig.content 'any' or update the type definition.
-  // For V1 compatibility, let's look at App.tsx again.
-  // In App.tsx: 
-  // pages.forEach((pageContent, index) => { ... content: pageContent ... })
-  // where pageContent is { content, fontSize }.
-  // So config.content will be { content, fontSize }.
-
-  // Handle content parsing safely.
-  // For Cover cards, content is undefined. We provide defaults to avoid crash.
+const Card: React.FC<CardProps> = ({ config, theme, backgroundImage, overlayOpacity = 0 }) => {
+  // Normalize content payload (string or { content, fontSize })
   const contentData = config.content
     ? (typeof config.content === 'string'
       ? { content: config.content, fontSize: parseInt(TYPOGRAPHY.fontSize) }
@@ -37,19 +20,36 @@ const Card: React.FC<CardProps> = ({ config, theme }) => {
 
   const { content, fontSize } = contentData;
 
-  const dynamicLineHeight = (fontSize * parseFloat(TYPOGRAPHY.lineHeight) / parseInt(TYPOGRAPHY.fontSize));
-
   return (
     <div
       className="card-node relative flex-shrink-0 overflow-hidden shadow-xl"
       style={{
         width: `${CARD_DIMENSIONS.width}px`,
         height: `${CARD_DIMENSIONS.height}px`,
-        background: theme.gradient,
         color: theme.textColor,
         fontFamily: TYPOGRAPHY.fontFamily,
       }}
     >
+      {/* Base gradient fallback */}
+      <div className="absolute inset-0" style={{ background: theme.gradient }} />
+
+      {/* Background Image */}
+      {backgroundImage && (
+        <img
+          src={backgroundImage}
+          alt="Custom background"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+      )}
+
+      {/* Overlay for readability */}
+      {backgroundImage && overlayOpacity > 0 && (
+        <div
+          className="absolute inset-0"
+          style={{ backgroundColor: `rgba(0,0,0,${overlayOpacity})` }}
+        />
+      )}
+
       {/* Background Noise/Texture Overlay */}
       <div className="absolute inset-0 opacity-10 pointer-events-none mix-blend-overlay"
         style={{
