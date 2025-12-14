@@ -138,13 +138,14 @@ const App: React.FC = () => {
 
     // 2. Process Content
     // Use debounced text and dynamic height
+    // Returns { content: string, fontSize: number }[]
     const pages = paginateText(debouncedText, safeHeight);
 
-    pages.forEach((pageContent, index) => {
+    pages.forEach((pageData, index) => {
       generatedCards.push({
         id: `page-${index}`,
         type: CardType.CONTENT,
-        content: pageContent,
+        content: pageData, // Now an object
         pageNumber: index + 1,
         totalPages: pages.length
       });

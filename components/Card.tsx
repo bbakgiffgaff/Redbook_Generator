@@ -1,6 +1,7 @@
 import React from 'react';
 import { CardConfig, CardType, Theme } from '../types';
 import { CARD_DIMENSIONS, TYPOGRAPHY } from '../constants';
+import { renderMarkdown } from '../utils/markdownRenderer';
 
 interface CardProps {
   config: CardConfig;
@@ -8,6 +9,36 @@ interface CardProps {
 }
 
 const Card: React.FC<CardProps> = ({ config, theme }) => {
+  // Parse content if it's an object with fontSize property (Auto-Shrink result)
+  // But wait, paginateText returns { content, fontSize } objects now.
+  // And config.content is typed as 'string' in CardConfig currently? 
+  // We need to verify CardConfig type in constants/types.
+  // Assuming config.content can be the object.
+  // Actually, we should check types.ts first or handle the type mismatch.
+  // Based on textUtils signature: { content: string, fontSize: number }[]
+  // App.tsx passes this to Card config.
+  // We need to update Card component to handle this structure or cast it.
+
+  // Let's assume for now we receive the "content" string and "fontSize" might be passed via config if we updated types. 
+  // OR we can make CardConfig.content 'any' or update the type definition.
+  // For V1 compatibility, let's look at App.tsx again.
+  // In App.tsx: 
+  // pages.forEach((pageContent, index) => { ... content: pageContent ... })
+  // where pageContent is { content, fontSize }.
+  // So config.content will be { content, fontSize }.
+
+  // Handle content parsing safely.
+  // For Cover cards, content is undefined. We provide defaults to avoid crash.
+  const contentData = config.content
+    ? (typeof config.content === 'string'
+      ? { content: config.content, fontSize: parseInt(TYPOGRAPHY.fontSize) }
+      : config.content)
+    : { content: '', fontSize: parseInt(TYPOGRAPHY.fontSize) };
+
+  const { content, fontSize } = contentData;
+
+  const dynamicLineHeight = (fontSize * parseFloat(TYPOGRAPHY.lineHeight) / parseInt(TYPOGRAPHY.fontSize));
+
   return (
     <div
       className="card-node relative flex-shrink-0 overflow-hidden shadow-xl"
@@ -76,18 +107,19 @@ const Card: React.FC<CardProps> = ({ config, theme }) => {
 
             {/* Body Text */}
             <div className="flex-1">
-              <p
+              <div
                 className="whitespace-pre-wrap text-justify drop-shadow-md"
                 style={{
                   overflowWrap: 'break-word',
-                  fontSize: TYPOGRAPHY.fontSize,
-                  lineHeight: TYPOGRAPHY.lineHeight,
+                  fontSize: `${fontSize}px`,
+                  lineHeight: TYPOGRAPHY.lineHeight, // Unitless constant '1.8' scales automatically
                   letterSpacing: TYPOGRAPHY.letterSpacing,
                   fontWeight: TYPOGRAPHY.fontWeight
                 }}
               >
-                {config.content}
-              </p>
+                {/* Use the Markdown Renderer */}
+                {renderMarkdown(content, fontSize)}
+              </div>
             </div>
 
             {/* Footer / Pagination */}
@@ -101,7 +133,7 @@ const Card: React.FC<CardProps> = ({ config, theme }) => {
           </>
         )}
       </div>
-    </div>
+    </div >
   );
 };
 

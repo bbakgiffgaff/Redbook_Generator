@@ -18,3 +18,27 @@ export const TYPOGRAPHY = {
     letterSpacing: '0.025em', // tracking-wide
     fontWeight: 500, // font-medium
 };
+
+export const AUTO_SHRINK = {
+    minFontSize: 22,
+    step: 2,
+    maxOverflowTolerance: 0.1, // 10%
+    defaultFontSize: 28, // Matches TYPOGRAPHY.fontSize parsed
+};
+
+export const MARKDOWN_STYLES = {
+    bold: {
+        fontWeight: 700,
+    },
+    list: {
+        listStyleType: 'disc',
+        paddingLeft: '1em',
+        marginBottom: '0.5em',
+    },
+    listItem: {
+        marginBottom: '0.25em',
+    },
+    paragraph: {
+        marginBottom: '1em',
+    }
+};

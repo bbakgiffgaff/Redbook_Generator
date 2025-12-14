@@ -7,7 +7,8 @@ export interface CardConfig {
   id: string;
   type: CardType;
   title?: string;
-  content?: string;
+  // Content can be plain string (cover/legacy) or object with fontSize (smart typography)
+  content?: string | { content: string, fontSize: number };
   pageNumber?: number;
   totalPages?: number;
 }
