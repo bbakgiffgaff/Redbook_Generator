@@ -1,5 +1,7 @@
 import React from 'react';
-import { LayoutTemplate, AlignLeft } from 'lucide-react';
+import { Theme } from '../types';
+import ThemeSelector from './ThemeSelector';
+import { LayoutTemplate, AlignLeft, Palette } from 'lucide-react';
 
 interface EditorProps {
   title: string;
@@ -8,15 +10,19 @@ interface EditorProps {
   setText: (val: string) => void;
   onDownload: () => void;
   isExporting: boolean;
+  currentTheme: Theme;
+  onThemeChange: (theme: Theme) => void;
 }
 
-const Editor: React.FC<EditorProps> = ({ 
-  title, 
-  setTitle, 
-  text, 
-  setText, 
-  onDownload, 
-  isExporting 
+const Editor: React.FC<EditorProps> = ({
+  title,
+  setTitle,
+  text,
+  setText,
+  onDownload,
+  isExporting,
+  currentTheme,
+  onThemeChange
 }) => {
   return (
     <div className="w-full md:w-[400px] bg-white border-r border-gray-200 h-screen overflow-y-auto flex flex-col shadow-xl z-20">
@@ -28,6 +34,15 @@ const Editor: React.FC<EditorProps> = ({
       </div>
 
       <div className="flex-1 p-6 space-y-6">
+        {/* Theme Selector */}
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+            <Palette size={16} />
+            Color Theme
+          </label>
+          <ThemeSelector currentTheme={currentTheme} onThemeChange={onThemeChange} />
+        </div>
+
         {/* Title Input */}
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
@@ -50,7 +65,7 @@ const Editor: React.FC<EditorProps> = ({
             Main Content
           </label>
           <div className="relative">
-             <textarea
+            <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder="Paste your long text here. The AI logic will automatically split it into multiple cards..."
@@ -72,8 +87,8 @@ const Editor: React.FC<EditorProps> = ({
           onClick={onDownload}
           disabled={isExporting}
           className={`w-full py-4 px-6 rounded-xl font-bold text-lg shadow-lg transform transition-all active:scale-95 flex items-center justify-center gap-2
-            ${isExporting 
-              ? 'bg-gray-400 cursor-not-allowed' 
+            ${isExporting
+              ? 'bg-gray-400 cursor-not-allowed'
               : 'bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white ring-4 ring-red-100'
             }`}
         >

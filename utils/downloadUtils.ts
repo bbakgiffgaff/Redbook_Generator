@@ -15,9 +15,11 @@ export const generateAndDownloadZip = async (containerId: string, filename: stri
   // Helper to wait for font loading
   await document.fonts.ready;
 
-  const promises = Array.from(cards).map(async (card, index) => {
-    const element = card as HTMLElement;
-    
+  const promises = Array.from(cards).map(async (cardWrapper, index) => {
+    // Select the actual card node to ignore wrapper margins/transform
+    const element = (cardWrapper as HTMLElement).querySelector('.card-node') as HTMLElement;
+    if (!element) return;
+
     try {
       const canvas = await html2canvas(element, {
         scale: 2, // Retina quality
@@ -43,7 +45,7 @@ export const generateAndDownloadZip = async (containerId: string, filename: stri
   await Promise.all(promises);
 
   const content = await zip.generateAsync({ type: 'blob' });
-  
+
   // Trigger download
   const url = window.URL.createObjectURL(content);
   const a = document.createElement('a');
