@@ -1,22 +1,30 @@
 - [ ] Data Model & Config
   - [ ] Define `Theme` interface and `THEMES` (as const) in `types.ts` (with WCAG AA colors)
   - [ ] Implement `getThemeById` helper with fallback logic
+  - [ ] Implement `generateCustomTheme(c1, c2, angle)` helper
+  - [ ] Implement `getContrastColor(hex)` helper (WCAG AA luminance logic)
 - [ ] State Management
   - [ ] Add `theme` state to `App.tsx`
-  - [ ] Implement `useThemePersistence` hook (Priority: URL > localStorage > Default)
+  - [ ] Implement `useThemePersistence` hook (Priority: URL Params > localStorage > Default)
+  - *URL Logic*: Parse `?theme=custom&c1=...&c2=...&angle=...` to hydrate state
+  - *Edge Case*: Implement fallback chain for incomplete custom params (URL -> LocalStorage -> Red)
 - [ ] UI Implementation
-  - [ ] Create `ThemeSelector` component (visual swatches, A11y: `button` with `aria-label`, keyboard nav)
-  - [ ] Update `Editor.tsx` to include `ThemeSelector`
+  - [ ] Create `ThemeSelector` component (A11y: `aria-label`, keyboard nav)
+  - [ ] Implement `CustomThemePanel` with native inputs (`type="color"`) and slider (A11y accessible)
+  - [ ] Update `Editor.tsx` to include `ThemeSelector` and conditional `CustomThemePanel`
 - [ ] Rendering Updates
   - [ ] Refactor `Card.tsx` to use dynamic theme props
-  - [ ] Ensure watermark and decorations respect theme colors
+  - [ ] Ensure watermark and decorations respect theme colors (use `accentColor` derived from `textColor`)
 - [ ] Verification
   *   **Automated**:
       - [ ] Add unit test for `getThemeById` (fallback logic, invalid ID handling)
-      - [ ] Add unit test for `paginateText` (regression test)
+      - [ ] Add unit test for `getContrastColor` (verify black/white logic)
   *   **Manual**: 
       - [ ] A11y: Verify keyboard navigation in Theme Selector
-      - [ ] Persistence: Verify URL overrides localStorage, and localStorage persists on reload
+      - [ ] Custom: Verify native color picker updates preview
+      - [ ] Custom: Verify URL sharing with custom params (`c1`, `c2`, `angle`) works
+      - [ ] Custom: Verify `accentColor` updates automatically when text color changes (e.g., switch light/dark bg)
       - [ ] Robustness: Verify app loads with invalid `?theme=xyz` (fallback to Red)
+      - [ ] Robustness: Verify `?theme=custom` with missing/bad params falls back correctly
       - [ ] Export: Verify exported image is exactly 600x800 (clean `.card-node` capture)
       - [ ] Export: Verify retry works after a simulated failure

@@ -68,15 +68,49 @@ The system MUST offer the following presets with specific color values to ensure
     *   Gradient: `linear-gradient(135deg, #F5F5F4 0%, #E7E5E4 100%)`
     *   Text Color: `#1C1917` (Dark Stone for WCAG AA constrast)
 
+### Requirement: Custom Theme Support
+The system MUST allow users to create a custom gradient theme using a color picker.
+
+#### Scenario: Custom Color Picker
+Given I select the "Custom" option in the theme selector
+Then a panel MUST appear with inputs for Color 1, Color 2, and Angle
+And using the native color picker (`<input type="color">`) MUST update the preview in real-time
+
+#### Scenario: Auto Contrast (WCAG AA)
+Given I choose a background color with low luminance (dark)
+Then the system MUST automatically switch the Text Color to White to ensure WCAG AA contrast
+Given I choose a background color with high luminance (light)
+Then the system MUST automatically switch the Text Color to Black
+
+#### Scenario: Custom URL Sharing
+Given I have configured a custom theme (e.g., Pink to Purple, 45deg)
+When I copy the URL, it MUST include the parameters `?theme=custom&c1=FF00FF&c2=800080&angle=45` (Hex values without `#`)
+And when another user opens this URL
+Then they MUST see the exact same custom gradient applied automatically
+And the "Custom" swatch MUST be selected
+
+#### Scenario: Broken Custom URL Fallback
+Given I open a URL `?theme=custom` but it is missing c1/c2 parameters or they are invalid
+And I have a previously saved valid custom theme in localStorage
+Then the system SHOULD fall back to the saved custom theme from localStorage
+If localStorage is also empty or invalid
+Then the system MUST fall back to the "Red" default theme
+
 ### Requirement: Accessibility & UI
 The theme selector MUST be accessible and usable.
 
-#### Scenario: Keyboard Navigation
+#### Scenario: Keyboard Navigation (Presets)
 Given I am using a keyboard
 When I tab into the theme selector
 Then I MUST be able to focus each theme swatch
 And select one using the Enter or Space key
 And each swatch MUST have a descriptive `aria-label`
+
+#### Scenario: Custom Panel Accessibility
+Given the Custom panel is open
+When I navigate with keyboard
+Then I MUST be able to focus the Color Pickers and Angle Slider
+And adjust values using keyboard controls
 
 ### Requirement: Robust Export
 Export functionality MUST be consistent and resilient.
