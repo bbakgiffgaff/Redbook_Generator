@@ -1,5 +1,6 @@
 import React from 'react';
 import { CardConfig, CardType, Theme } from '../types';
+import { CARD_DIMENSIONS, TYPOGRAPHY } from '../constants';
 
 interface CardProps {
   config: CardConfig;
@@ -11,11 +12,11 @@ const Card: React.FC<CardProps> = ({ config, theme }) => {
     <div
       className="card-node relative flex-shrink-0 overflow-hidden shadow-xl"
       style={{
-        width: '600px',
-        height: '800px',
+        width: `${CARD_DIMENSIONS.width}px`,
+        height: `${CARD_DIMENSIONS.height}px`,
         background: theme.gradient,
         color: theme.textColor,
-        fontFamily: '"Noto Sans SC", sans-serif',
+        fontFamily: TYPOGRAPHY.fontFamily,
       }}
     >
       {/* Background Noise/Texture Overlay */}
@@ -39,7 +40,7 @@ const Card: React.FC<CardProps> = ({ config, theme }) => {
       </div>
 
       {/* Content Container */}
-      <div className="relative h-full flex flex-col p-[60px] z-10 box-border">
+      <div className="relative h-full flex flex-col z-10 box-border" style={{ padding: `${CARD_DIMENSIONS.padding}px` }}>
 
         {config.type === CardType.COVER ? (
           // Cover Layout
@@ -76,8 +77,14 @@ const Card: React.FC<CardProps> = ({ config, theme }) => {
             {/* Body Text */}
             <div className="flex-1">
               <p
-                className="whitespace-pre-wrap text-justify text-[28px] leading-[1.8] font-medium tracking-wide drop-shadow-md"
-                style={{ overflowWrap: 'break-word' }}
+                className="whitespace-pre-wrap text-justify drop-shadow-md"
+                style={{
+                  overflowWrap: 'break-word',
+                  fontSize: TYPOGRAPHY.fontSize,
+                  lineHeight: TYPOGRAPHY.lineHeight,
+                  letterSpacing: TYPOGRAPHY.letterSpacing,
+                  fontWeight: TYPOGRAPHY.fontWeight
+                }}
               >
                 {config.content}
               </p>

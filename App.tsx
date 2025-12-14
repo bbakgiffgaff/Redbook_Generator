@@ -6,6 +6,17 @@ import { paginateText } from './utils/textUtils';
 import { generateAndDownloadZip } from './utils/downloadUtils';
 import { getThemeById, generateCustomTheme } from './utils/themeUtils';
 import { Image } from 'lucide-react';
+import { DEFAULT_SAFE_HEIGHT, CARD_DIMENSIONS, TYPOGRAPHY } from './constants';
+
+// Hook for debouncing value
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debouncedValue;
+}
 
 // Default content for demo purposes
 const DEFAULT_TITLE = "Role Settings: Full Stack & UI Designer";
@@ -22,12 +33,10 @@ Create an HTML+CSS+JS single-page application that automatically converts long t
 
 const App: React.FC = () => {
   // Theme State Initialization
-  // Priority: URL (custom or preset) > localStorage (custom or preset) > Default
   const [currentTheme, setCurrentTheme] = useState<Theme>(() => {
     const params = new URLSearchParams(window.location.search);
     const urlThemeId = params.get('theme');
 
-    // 1. URL Logic
     if (urlThemeId === 'custom') {
       const c1 = params.get('c1');
       const c2 = params.get('c2');
@@ -35,16 +44,13 @@ const App: React.FC = () => {
       if (c1 && c2 && !isNaN(angle)) {
         return generateCustomTheme(c1, c2, angle);
       }
-      // Fallback: If URL says custom but params missing, try loading stored custom
     } else if (urlThemeId) {
       const preset = getThemeById(urlThemeId);
-      // Valid preset found?
       if (preset.id !== DEFAULT_THEME_ID || urlThemeId === DEFAULT_THEME_ID) {
         return preset;
       }
     }
 
-    // 2. LocalStorage Logic
     try {
       const stored = localStorage.getItem('rb-generator-theme-v2');
       if (stored) {
@@ -58,7 +64,6 @@ const App: React.FC = () => {
       console.warn("Failed to parse stored theme", e);
     }
 
-    // 3. Default Logic
     return getThemeById(DEFAULT_THEME_ID);
   });
 
@@ -66,9 +71,13 @@ const App: React.FC = () => {
   const [text, setText] = useState(DEFAULT_TEXT);
   const [isExporting, setIsExporting] = useState(false);
 
+  // Dynamic Measurement State
+  const [safeHeight, setSafeHeight] = useState<number>(DEFAULT_SAFE_HEIGHT);
+  const contentMeasureRef = React.useRef<HTMLDivElement>(null);
+  const debouncedText = useDebounce(text, 300);
+
   // Persistence Effect
   useEffect(() => {
-    // 1. Update URL
     const params = new URLSearchParams(window.location.search);
 
     if (currentTheme.id === 'custom' && currentTheme.customConfig) {
@@ -78,12 +87,10 @@ const App: React.FC = () => {
       params.set('angle', currentTheme.customConfig.angle.toString());
     } else if (currentTheme.id !== DEFAULT_THEME_ID) {
       params.set('theme', currentTheme.id);
-      // Clean up custom params if any
       params.delete('c1');
       params.delete('c2');
       params.delete('angle');
     } else {
-      // Default: clean all
       params.delete('theme');
       params.delete('c1');
       params.delete('c2');
@@ -93,13 +100,30 @@ const App: React.FC = () => {
     const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
     window.history.replaceState({}, '', newUrl);
 
-    // 2. Update LocalStorage
-    // We store the ID and, if custom, the config
     localStorage.setItem('rb-generator-theme-v2', JSON.stringify({
       id: currentTheme.id,
       customConfig: currentTheme.customConfig
     }));
   }, [currentTheme]);
+
+  // Layout Measurement Effect
+  useEffect(() => {
+    const measureLayout = async () => {
+      await document.fonts.ready;
+      if (contentMeasureRef.current) {
+        const measuredHeight = contentMeasureRef.current.clientHeight;
+        if (measuredHeight > 0) {
+          setSafeHeight(measuredHeight);
+        } else {
+          setSafeHeight(DEFAULT_SAFE_HEIGHT);
+        }
+      }
+    };
+
+    measureLayout();
+    window.addEventListener('resize', measureLayout);
+    return () => window.removeEventListener('resize', measureLayout);
+  }, []);
 
   // Memoize the card generation logic to prevent flicker
   const cards: CardConfig[] = useMemo(() => {
@@ -113,7 +137,8 @@ const App: React.FC = () => {
     });
 
     // 2. Process Content
-    const pages = paginateText(text, 120);
+    // Use debounced text and dynamic height
+    const pages = paginateText(debouncedText, safeHeight);
 
     pages.forEach((pageContent, index) => {
       generatedCards.push({
@@ -126,7 +151,7 @@ const App: React.FC = () => {
     });
 
     return generatedCards;
-  }, [title, text]);
+  }, [title, debouncedText, safeHeight]);
 
   const handleDownload = async () => {
     setIsExporting(true);
@@ -144,7 +169,43 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-gray-100">
+    <div className="flex h-screen w-screen overflow-hidden bg-gray-100 relative">
+
+      {/* 
+        Hidden Skeleton Card for Measurement 
+        Absolute position, hidden visibility, same structure as real Card 
+      */}
+      <div
+        id="layout-reference"
+        className="absolute top-0 left-0 -z-50 invisible pointer-events-none"
+        style={{
+          width: `${CARD_DIMENSIONS.width}px`,
+          height: `${CARD_DIMENSIONS.height}px`,
+          padding: `${CARD_DIMENSIONS.padding}px`,
+          boxSizing: 'border-box',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
+        {/* Header Skeleton */}
+        <div className="flex justify-between items-center mb-8 border-b pb-4 opacity-80" style={{ borderColor: 'transparent' }}>
+          <span className="text-sm font-bold tracking-[0.2em] uppercase opacity-60">THE RED BOOK</span>
+          <div className="w-2 h-2 rounded-full"></div>
+        </div>
+
+        {/* Content Area to Measure */}
+        <div ref={contentMeasureRef} className="flex-1"></div>
+
+        {/* Footer Skeleton */}
+        <div className="mt-auto pt-6 flex justify-end items-end">
+          <div className="flex items-baseline font-mono opacity-80">
+            <span className="text-4xl font-bold">00</span>
+            <span className="text-xl mx-1">/</span>
+            <span className="text-xl">00</span>
+          </div>
+        </div>
+      </div>
+
       {/* Left Sidebar: Editor */}
       <Editor
         title={title}
